@@ -190,3 +190,44 @@ kubectl create --edit -f /tmp/srv.yaml
 ## Do you want more?
 
 - [Kubernauts resources list](https://docs.google.com/spreadsheets/d/10NltoF_6y3mBwUzQ4bcQLQfCE1BWSgUDcJXy-Qp2JEU/edit#gid=0)
+
+
+
+
+
+
+Steps -
+
+Ensure iptables tooling does not use the nftables backend -
+update-alternatives --set iptables /usr/sbin/iptables-legacy
+
+
+Install Docker
+subscription-manager repos --enable=rhel-7-server-extras-rpms
+yum -y install docker
+systemctl start docker
+systemctl enable docker
+
+# Set SELinux in permissive mode (effectively disabling it)
+setenforce 0
+sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+
+cat <<EOF >  /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+EOF
+sysctl --system
+
+Installing kubeadm, kubelet and kubectl
+cat <<EOF > /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+EOF
+
+####yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+yum install -y kubelet-1.16.4-0 kubeadm-1.16.4-0 kubectl-1.16.4-0 --disableexcludes=kubernetes
